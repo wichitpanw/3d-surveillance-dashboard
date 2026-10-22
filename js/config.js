@@ -1,11 +1,9 @@
 // Demo configuration — edit names, positions, timing and video paths here.
 // 3D positions are in scene units: x = left/right, y = height (each floor is 4 units), z = front(+)/back(-).
 window.APP_CONFIG = {
-  siteName: 'Convention Hall · Demo Site',
   intervalMs: 10000,      // time between events at speed 1x
   firstEventMs: 2500,     // delay before the first event after page load
   maxCards: 20,           // cards kept in the Event Alert list
-  baselineEvents: 42,     // starting value for "Events Today"
 
   // snapshot = still shown as the camera's live view (a calm frame from its clip); analytics = AI models listed for it.
   cameras: [

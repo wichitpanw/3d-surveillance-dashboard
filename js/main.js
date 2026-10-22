@@ -16,8 +16,6 @@
   const state = {
     instances: [],              // newest first
     seq: 1000 + Math.floor(Math.random() * 400),
-    total: cfg.baselineEvents,
-    critical: 0,
     muted: false,
     current: null               // instance open in the modal
   };
@@ -33,20 +31,6 @@
     t.classList.add('show');
     clearTimeout(toast.timer);
     toast.timer = setTimeout(() => t.classList.remove('show'), 1600);
-  }
-
-  function bumpStat(id, value) {
-    const el = $(id);
-    el.textContent = value;
-    el.classList.remove('bump');
-    void el.offsetWidth;
-    el.classList.add('bump');
-  }
-
-  function updateStats() {
-    bumpStat('#statTotal', state.total);
-    $('#statCritical').textContent = state.critical;
-    $('#statUnack').textContent = state.instances.filter((i) => i.status === 'new').length;
   }
 
   // ---------- Alert sound (Web Audio, no files) ----------
@@ -180,11 +164,8 @@
     inst.log.push(['Alert sent to control room', new Date(inst.time.getTime() + 400)]);
 
     state.instances.unshift(inst);
-    state.total++;
-    if (def.severity === 'critical') state.critical++;
     renderCard(inst);
     trimList();
-    updateStats();
     beep(def.severity);
 
     window.Scene3D?.highlight(def.camId, def);
@@ -294,7 +275,6 @@
     inst.log.push([logText, new Date()]);
     renderDetailsState(inst);
     refreshCard(inst);
-    updateStats();
     toast(`${inst.id} · ${logText}`);
   }
 
@@ -440,10 +420,9 @@
   $('#lClose').addEventListener('click', () => closeLive());
   liveModal.addEventListener('click', (e) => { if (e.target === liveModal) closeLive(); });
 
-  // ---------- Header controls ----------
+  // ---------- Booth controls (keyboard only) ----------
   function toggleMute() {
     state.muted = !state.muted;
-    $('#btnMute').classList.toggle('muted', state.muted);
     toast(state.muted ? 'Sound off' : 'Sound on');
   }
 
@@ -463,10 +442,6 @@
     window.Scene3D?.setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-  $('#btnMute').addEventListener('click', toggleMute);
-  $('#btnTheme').addEventListener('click', toggleTheme);
-  $('#btnFull').addEventListener('click', toggleFullscreen);
-
   // Hidden booth-operator keys: P pause, +/- speed, N next event, F fullscreen, M mute, T theme, Esc close
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -481,17 +456,7 @@
     else if (k === 'n') EventEngine.triggerNext();
   });
 
-  function tickClock() {
-    const d = new Date();
-    $('#clockTime').textContent = hms(d);
-    $('#clockDate').textContent = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
-  }
-
   // ---------- Boot ----------
-  $('#siteName').textContent = cfg.siteName;
-  tickClock();
-  setInterval(tickClock, 1000);
-  updateStats();
   buildCamStrip();
 
   if (window.Scene3D.init($('#scene'))) window.Scene3D.onCameraClick(onCameraClick);
