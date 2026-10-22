@@ -20,6 +20,9 @@
   const PODIUM = [[-128, -104, 6], [-10, -104, 20], [25, -97, 20], [105, -97, 21], [105, 134, 25],
     [-102, 134, 25], [-102, 68, 2], [-128, 68, 2]];
   const HALL = { x0: -77, x1: 80, z0: -42, z1: 69 };   // central hall block (raised roof on satellite)
+  // Vehicle gates off Ratchadaphisek Rd (z ranges): the first gate is the south service road beside the
+  // curved SE corner, the second runs between the building and the lake. Roadside trees are left out here.
+  const GATES = [[-152, -100], [136, 182]];
   // Paved forecourt around the building, including the west loading yard.
   const SITE = [[-150, -119, 14], [132, -119, 30], [132, 151, 36], [-150, 151, 20]];
 
@@ -63,6 +66,7 @@
   const themed = [];        // [material, paletteKey] pairs recoloured on theme change
   const glassMats = [];     // façade glass, faded in X-ray view
   let exteriorGroup, xrayGroup;
+  let facadeRing = [];      // sampled roof-edge outline, shared with the corner signs
   const markers = {};
   const pickables = [];
   const ripples = [];
@@ -124,6 +128,7 @@
     addLights();
     buildSite();
     buildBuilding();
+    buildEntrances();
     buildInterior();
     cfg.cameras.forEach(addCamera);
     setTheme(currentTheme());
@@ -254,15 +259,17 @@
     return add(new THREE.Mesh(g, material), parent, { cast: false });
   }
 
-  // Vertical strip along a ring, from y0 to topFn(p); u runs along the wall in uScale metres.
+  // Vertical strip along a ring, from y0(p) to topFn(p) (numbers or functions of the ring point);
+  // u runs along the wall in uScale metres.
   function wall(ring, y0, topFn, material, parent, uScale = 6, vScale = 6) {
     const pos = [], uv = [], idx = [];
     let len = 0;
     ring.forEach((p, i) => {
       if (i) len += Math.hypot(p.x - ring[i - 1].x, p.z - ring[i - 1].z);
       const top = typeof topFn === 'function' ? topFn(p) : topFn;
-      pos.push(p.x, y0, p.z, p.x, top, p.z);
-      uv.push(len / uScale, 0, len / uScale, (top - y0) / vScale);
+      const bottom = typeof y0 === 'function' ? y0(p) : y0;
+      pos.push(p.x, bottom, p.z, p.x, top, p.z);
+      uv.push(len / uScale, 0, len / uScale, (top - bottom) / vScale);
       if (i) { const a = (i - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
     });
     const g = new THREE.BufferGeometry();
@@ -376,14 +383,6 @@
     add(new THREE.Mesh(flame, gold), scene).position.set(124, 2.6, 18);
     for (const [z0, z1] of [[-30, -6], [38, 62]]) flat(rectShape(118, z0, 123, z1), water, 0.35);
 
-    // grand stairs stepping down to the curved NE entrance
-    for (let k = 0; k < 6; k++) {
-      const r = 26 + k * 1.8;
-      const step = add(new THREE.Mesh(new THREE.RingGeometry(r, r + 1.8, 40, 1, -Math.PI * 0.05, Math.PI * 0.6), plaza), scene, { cast: false });
-      step.rotation.x = -Math.PI / 2;
-      step.position.set(109 - 24, 0.3 + k * 0.28, -101 + 24);
-    }
-
     // trees: along the roads, the forecourt edges and around the lake (one instanced mesh each)
     const spots = [];
     let seed = 11;
@@ -395,6 +394,9 @@
       const a = rnd() * Math.PI * 2, r = 1 + rnd() * 0.12;
       spots.push([10 + Math.cos(a) * 140 * r, -235 + Math.sin(a) * 100 * r]);
     }
+    // keep sight lines open where the two vehicle gates meet Ratchadaphisek Rd
+    const inGate = ([x, z]) => x > 95 && x < 190 && GATES.some(([z0, z1]) => z > z0 && z < z1);
+    for (let i = spots.length - 1; i >= 0; i--) if (inGate(spots[i])) spots.splice(i, 1);
     const crowns = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), mat('leaf', { roughness: 0.9 }), spots.length);
     const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.5, 1, 6), mat('trunk'), spots.length);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), v = new THREE.Vector3();
@@ -418,7 +420,7 @@
   // ---------- The convention centre ----------
   function buildBuilding() {
     const outline = outlineShape(OUTLINE);
-    const ring = ringOf(outline, 520);
+    const ring = facadeRing = ringOf(outline, 520);
     const podiumRing = ringOf(outlineShape(PODIUM), 480);
 
     // recessed ground floor: dark glazing behind white round columns, soffit of the glass box above
@@ -446,7 +448,7 @@
 
     // white roof edge band and the outer roof (slightly dished toward the raised NE corner)
     const fascia = mat('fascia', { roughness: 0.5, side: THREE.DoubleSide });
-    wall(offsetRing(ring, 0.5), ROOF_Y - 1.2, (p) => roofTop(p) + 0.4, fascia, exteriorGroup);
+    wall(offsetRing(ring, 0.5), (p) => roofTop(p) - 1.2, (p) => roofTop(p) + 0.4, fascia, exteriorGroup);
     flat(outline, mat('roof', { roughness: 0.85 }), 0, exteriorGroup, roofTop, 24).castShadow = true;
 
     // raised central hall roof with a light skylight strip along its north edge
@@ -491,6 +493,256 @@
     // west loading yard: dock canopy and parked trucks
     box(26, 0.6, 62, mat('soffit'), -119, 7.5, 104);
     for (let i = 0; i < 4; i++) box(3, 3.6, 12, mech, -126 + (i % 2) * 7, 1.8, 84 + i * 13);
+  }
+
+  // ---------- Entrances and signage ----------
+  // NE: lakeside main entrance — wide stair terrace with handrails and planters, canopy over the doors
+  //     (ENTRANCE panorama). SE: vehicle entrance from Ratchadaphisek Rd — driveway, granite name wall,
+  //     white pylon sign, guard booth, bus shelter and a small glass pavilion (Street View, Dec 2025).
+  // Both curved corners carry the venue wordmark high on the glass.
+  // corner centre, podium radius, and the corner's outward direction as an angle (x = sin θ, z = cos θ)
+  const NE = { cx: 85, cz: -77, podiumR: 21, theta: Math.PI * 0.75 };
+  const SE = { cx: 81, cz: 110, podiumR: 25, theta: Math.PI * 0.25 };
+
+  function signTexture(text, color = '#f5f7fa', w = 1024, h = 256, font = '700 196px Georgia, "Times New Roman", serif') {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.font = font;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '14px';
+    // dark outline + soft shadow so the silver letters read against bright reflective glass
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = 'rgba(28, 38, 52, 0.75)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 10;
+    ctx.strokeText(text, w / 2, h / 2 + 10, w - 40);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color;
+    ctx.fillText(text, w / 2, h / 2 + 10, w - 40);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }
+
+  // Wordmark as individual letters mounted on the curved glass: each letter sits on the façade line at
+  // its own point and faces straight out, so the word never smears or overlaps when seen at an angle.
+  function cornerSign(corner, y, height, pitch) {
+    const ring = facadeRing, n = ring.length;
+    const len = [0];
+    for (let i = 1; i < n; i++) len.push(len[i - 1] + Math.hypot(ring[i].x - ring[i - 1].x, ring[i].z - ring[i - 1].z));
+    // the ring point furthest out along the corner's diagonal is the middle of the word
+    const dx = Math.sin(corner.theta), dz = Math.cos(corner.theta);
+    let mid = 0;
+    ring.forEach((p, i) => { if ((p.x - corner.cx) * dx + (p.z - corner.cz) * dz > (ring[mid].x - corner.cx) * dx + (ring[mid].z - corner.cz) * dz) mid = i; });
+    const at = (s) => {
+      let i = 1;
+      while (i < n - 1 && len[i] < s) i++;
+      const k = (s - len[i - 1]) / (len[i] - len[i - 1] || 1), a = ring[i - 1], b = ring[i];
+      const tx = b.x - a.x, tz = b.z - a.z, L = Math.hypot(tx, tz) || 1;
+      return { x: a.x + tx * k, z: a.z + tz * k, nx: tz / L, nz: -tx / L };
+    };
+    const text = 'QSNCC';
+    [...text].forEach((ch, k) => {
+      // ring order runs right-to-left for someone facing the building, so letters step backwards along it
+      const p = at(len[mid] - (k - (text.length - 1) / 2) * pitch);
+      const letter = new THREE.Mesh(new THREE.PlaneGeometry(height * 0.82, height), new THREE.MeshBasicMaterial({ map: letterTexture(ch), transparent: true, depthWrite: false }));
+      letter.position.set(p.x + p.nx * 0.9, y, p.z + p.nz * 0.9);   // clear of the glass and the roof-edge band
+      letter.rotation.y = Math.atan2(p.nx, p.nz);
+      letter.renderOrder = 2;
+      exteriorGroup.add(letter);
+    });
+  }
+
+  const letterCache = {};
+  function letterTexture(ch) {
+    if (letterCache[ch]) return letterCache[ch];
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 312;
+    const ctx = c.getContext('2d');
+    ctx.font = '700 300px Georgia, "Times New Roman", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = 'rgba(28, 38, 52, 0.75)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 12;
+    ctx.strokeText(ch, 128, 168);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#f5f7fa';
+    ctx.fillText(ch, 128, 168);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return (letterCache[ch] = t);
+  }
+
+  // Point on a corner at radius r and world angle a (a = 0 east, a = π/2 south).
+  const onCorner = (c, r, a) => [c.cx + Math.cos(a) * r, c.cz + Math.sin(a) * r];
+
+  // Annular slab (stair step, terrace) around a corner centre, between angles a0..a1 (world, see onCorner).
+  function arcSlab(c, r0, r1, a0, a1, h, material) {
+    const s = new THREE.Shape();
+    s.absarc(0, 0, r1, -a0, -a1, true);
+    s.absarc(0, 0, r0, -a1, -a0, false);
+    s.closePath();
+    const g = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 32 });
+    g.rotateX(-Math.PI / 2);
+    const m = add(new THREE.Mesh(g, material), scene);
+    m.position.set(c.cx, 0, c.cz);
+    return m;
+  }
+
+  function tree(x, z, size, leafMat, trunkMat) {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 4.4, 6), trunkMat), scene).position.set(x, 2.2, z);
+    const crown = add(new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), leafMat), scene);
+    crown.position.set(x, 4 + size * 0.6, z);
+    crown.scale.set(size, size * 0.8, size);
+  }
+
+  function buildEntrances() {
+    const granite = mat('plaza', { roughness: 0.85 });
+    const white = mat('fascia', { roughness: 0.5 });
+    const steel = mat('pole', { metalness: 0.6, roughness: 0.35 });
+    const dark = mat('tint', { roughness: 0.3, metalness: 0.3 });
+    const grey = mat('mech', { roughness: 0.7 });
+    const leaf = mat('leaf', { roughness: 0.9 });
+    const trunk = mat('trunk');
+    const hedge = mat('lawn', { roughness: 1 });
+    const clearGlass = mat('glass', { transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.3 });
+    glassMats.push([clearGlass, 0.55, 0.12]);
+
+    // --- NE lakeside entrance ---------------------------------------------------------------
+    const neA0 = -Math.PI * 0.5, neA1 = 0;            // north → east, centred on the NE diagonal
+    const rise = 0.3, tread = 1.15, steps = 8, r0 = 25.5;
+    for (let k = 0; k < steps; k++) arcSlab(NE, r0 + k * tread, r0 + (k + 1) * tread + 0.01, neA0 + 0.18, neA1 - 0.18, (k + 1) * rise, granite);
+    const top = r0 + steps * tread;
+    arcSlab(NE, top, top + 9, neA0 + 0.18, neA1 - 0.18, steps * rise, granite);                 // upper terrace
+    for (let k = 0; k < 3; k++) arcSlab(NE, top + 9 + k * 2, top + 11 + k * 2, neA0 + 0.18, neA1 - 0.18, (steps - 2 * (k + 1)) * rise, granite);
+    // granite cheek walls with planters and trees either side of the stair
+    for (const a of [neA0 + 0.1, neA1 - 0.1]) {
+      arcSlab(NE, r0 - 1, top + 12, a - 0.08, a + 0.08, steps * rise + 1.1, granite);
+      const [px, pz] = onCorner(NE, top + 2, a);
+      arcSlab(NE, r0 + 2, top + 8, a - 0.07, a + 0.07, steps * rise + 1.4, hedge);
+      tree(px, pz, 4.2, leaf, trunk);
+      const [qx, qz] = onCorner(NE, r0 + 3, a);
+      tree(qx, qz, 3.4, leaf, trunk);
+    }
+    // stainless handrails running down the stair
+    for (let i = 1; i <= 5; i++) {
+      const a = neA0 + 0.18 + (i / 6) * (neA1 - neA0 - 0.36);
+      const [x0, z0] = onCorner(NE, r0, a), [x1, z1] = onCorner(NE, top, a);
+      const len = Math.hypot(x1 - x0, z1 - z0), slope = Math.atan2(steps * rise, len);
+      const rail = add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, Math.hypot(len, steps * rise)), steel), scene);
+      rail.position.set((x0 + x1) / 2, 1.1 + (steps * rise) / 2, (z0 + z1) / 2);
+      rail.rotation.order = 'YXZ';
+      rail.rotation.y = Math.atan2(x1 - x0, z1 - z0);
+      rail.rotation.x = -slope;
+      for (const t of [0, 0.5, 1]) {
+        const post = add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), steel), scene);
+        post.position.set(x0 + (x1 - x0) * t, 0.55 + t * steps * rise, z0 + (z1 - z0) * t);
+      }
+    }
+    // tall clear-glass lobby, entrance canopy and two revolving doors on the corner
+    arcSlab(NE, NE.podiumR - 0.4, NE.podiumR, -Math.PI * 0.5 + 0.05, -0.05, PODIUM_H, clearGlass).castShadow = false;
+    const [cx, cz] = onCorner(NE, NE.podiumR + 2.2, -Math.PI / 4);
+    const canopy = box(14, 0.5, 4.4, white, cx, 5.2, cz);
+    canopy.rotation.y = -Math.PI / 4;   // long side along the curve
+    for (const d of [-0.16, 0.16]) {
+      const [dx, dz] = onCorner(NE, NE.podiumR + 0.6, -Math.PI / 4 + d);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 3.2, 20), clearGlass), scene).position.set(dx, 1.6, dz);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.3, 20), white), scene).position.set(dx, 3.35, dz);
+    }
+
+    // --- First gate: the south service road meeting Ratchadaphisek Rd ---------------------------
+    // From the road the drive heads west toward the curved SE corner. North of it (right): the granite
+    // name wall, two trees, the MRT station's oval glass dome and stair canopy. South of it (left): a
+    // glass pavilion on a raised lawn behind a curved granite wall, the parking sign tower and a big
+    // clump of trees (Street View Dec 2025, satellite).
+    const lineMat = mat('roadLine', {}, THREE.MeshBasicMaterial);
+    for (let x = 96; x < 136; x += 4) box(2, 0.05, 0.25, lineMat, x, 0.2, 158);         // centre line
+    box(0.25, 0.05, 6, lineMat, 136.5, 0.2, 161);                                      // give-way line
+    const arrow = new THREE.Shape([[0, -0.4], [3, -0.4], [3, -1.1], [5, 0], [3, 1.1], [3, 0.4], [0, 0.4]].map(([a, b]) => new THREE.Vector2(a, b)));
+    const arrowMesh = add(new THREE.Mesh(new THREE.ShapeGeometry(arrow), lineMat), scene, { cast: false });
+    arrowMesh.rotation.set(-Math.PI / 2, 0, Math.PI);                                   // pointing west, into the site
+    arrowMesh.position.set(130, 0.2, 161);
+
+    // granite name wall at the corner of the gate road and Ratchadaphisek, its long face along the
+    // north kerb facing the drive; planter at the west end, a low return wall and steps toward the
+    // Ratchadaphisek sidewalk, trees behind — clear of the building's own entrance.
+    box(14, 3.2, 1.6, granite, 127, 1.6, 148.6);
+    box(15, 0.4, 2.4, granite, 127, 0.2, 148.6);                                       // plinth
+    box(9, 0.6, 0.06, dark, 126, 2.2, 149.45);                                         // engraved name band
+    box(1.2, 1.2, 0.08, mat('gold', { metalness: 0.8, roughness: 0.3 }), 126, 2.95, 149.45); // crest
+    box(3, 0.9, 2.6, hedge, 118.5, 0.45, 148.6);                                       // planter, west end
+    box(14, 1.2, 4, hedge, 127, 0.6, 144.6);                                           // hedge behind
+    box(3.4, 1.6, 1.6, granite, 135.6, 0.8, 148.6);                                    // low return wall
+    for (let k = 0; k < 3; k++) box(3.2, 0.2 * (k + 1), 1.2 - k * 0.35, granite, 135.6, 0.1 * (k + 1), 150 + k * 0.1);
+    for (const [x, z, s] of [[123, 141, 4.6], [131, 140, 4.2]]) tree(x, z, s, leaf, trunk);
+
+    // MRT station entrance on the forecourt: oval glass dome on a granite base, stair canopy by the kerb
+    const base = add(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.8, 48), granite), scene);
+    base.scale.set(7.4, 1, 12.4);
+    base.position.set(121, 0.4, 103);
+    const ring = new THREE.TorusGeometry(1, 0.08, 8, 64);
+    ring.rotateX(Math.PI / 2);
+    ring.scale(6.6, 8, 11.6);
+    add(new THREE.Mesh(ring, white), scene).position.set(121, 1.2, 103);
+    const dome = new THREE.SphereGeometry(1, 40, 14, 0, Math.PI * 2, 0, Math.PI / 2);
+    dome.scale(6.4, 2.4, 11.4);
+    add(new THREE.Mesh(dome, clearGlass), scene, { cast: false }).position.set(121, 0.9, 103);
+    const greenRoof = mat('lawn', { transparent: true, opacity: 0.75, roughness: 0.4 });
+    box(5, 0.3, 16, greenRoof, 129.5, 3.4, 122);
+    for (const z of [115, 122, 129]) for (const x of [127.4, 131.6]) add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 3.4, 10), white), scene).position.set(x, 1.7, z);
+    box(0.08, 1.1, 16, steel, 126.6, 0.55, 122);                                       // railing
+
+    // south side of the drive: glass pavilion on a raised lawn, parking sign tower, tree clump
+    box(22, 1.3, 12, hedge, 122, 0.65, 173);
+    box(22.4, 1.5, 0.6, granite, 122, 0.75, 166.9);
+    box(13, 3.4, 7.5, clearGlass, 124, 3, 174);
+    box(15, 0.5, 9.5, white, 124, 4.95, 174);
+    box(1.2, 5, 1.2, dark, 112, 2.5, 167.5);
+    for (const [x, z, s] of [[100, 172, 6], [108, 179, 5.5], [93, 180, 5], [134, 178, 4.5]]) tree(x, z, s, leaf, trunk);
+
+    // bus shelter on the Ratchadaphisek kerb
+    box(3.2, 0.3, 15, white, 134.5, 3.2, 80);
+    for (const z of [74, 80, 86]) box(0.25, 3.2, 0.25, steel, 135.6, 1.6, z);
+    tree(118, 93, 4, leaf, trunk);
+
+    // --- North gate (second gate) off Ratchadaphisek Rd, between the building and the lake -------
+    // Driving in, the curved NE corner with its wordmark is on the left; the tall white pylon sign and
+    // the guard booth with the OUT sign stand on the right (Street View, Dec 2025).
+    for (let x = 104; x < 136; x += 4) box(2, 0.05, 0.25, lineMat, x, 0.2, -125);   // lane divider
+    box(0.4, 0.06, 6, lineMat, 136, 0.2, -128.5);                                  // stop line
+    for (const z of [-131.8, -118.2]) box(34, 0.3, 0.4, granite, 120, 0.25, z);     // kerbs
+    box(1.4, 16, 7.4, white, 132, 8, -142);                                         // pylon sign
+    box(0.12, 9.5, 6, grey, 132.75, 7.2, -142);
+    const head = add(new THREE.Mesh(new THREE.PlaneGeometry(6.4, 1.7), new THREE.MeshBasicMaterial({ map: signTexture('QSNCC', '#8a7340'), transparent: true })), scene, { cast: false });
+    head.position.set(132.75, 14.4, -142);
+    head.rotation.y = Math.PI / 2;
+    box(4.2, 2.8, 3.4, clearGlass, 128, 1.4, -135);                                 // guard booth
+    box(6, 0.35, 5, white, 128, 3, -135);
+    for (const [x, z] of [[125.4, -132.8], [130.6, -132.8], [125.4, -137.2], [130.6, -137.2]]) box(0.2, 2.8, 0.2, white, x, 1.4, z);
+    box(0.9, 1.3, 0.15, mat('trunk'), 133, 0.65, -132.6);                           // OUT sign post
+    box(16, 1, 2.6, hedge, 124, 0.5, -139.5);                                       // hedge behind the booth
+    // rounded hedge planter and parking sign on the building side of the drive
+    arcSlab(NE, top + 7, top + 10, -0.75, -0.35, 1.2, hedge);
+    box(0.6, 3.6, 0.6, dark, 112, 1.8, -116.5);
+    box(3, 1, 30, hedge, 129, 0.5, 63);
+
+    // tall clear-glass lobby and drop-off canopy on the SE corner
+    arcSlab(SE, SE.podiumR - 0.4, SE.podiumR, 0.05, Math.PI * 0.5 - 0.05, PODIUM_H, clearGlass).castShadow = false;
+    const [sx, sz] = onCorner(SE, SE.podiumR + 2.6, Math.PI / 4);
+    const dropOff = box(16, 0.6, 5.2, white, sx, 5.4, sz);
+    dropOff.rotation.y = Math.PI / 4;   // long side along the curve
+
+    // wordmarks high on both curved glass corners
+    cornerSign(NE, 24.5, 5.6, 4.9);
+    cornerSign(SE, 20.5, 5.6, 4.9);
   }
 
   // ---------- Inside (X-ray view) ----------
