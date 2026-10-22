@@ -434,7 +434,7 @@
   function toggleTheme() {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('sentinel-theme', next); } catch (e) { /* remembering is optional */ }
+    try { localStorage.setItem('surveillance-theme', next); } catch (e) { /* remembering is optional */ }
   }
 
   // keep the 3D scene in step with the page theme, whoever changes it (our button or the host viewer)

@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sentinel AI · Venue Surveillance</title>
+  <title>Surveillance Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
   <link rel="stylesheet" href="css/style.css" />
   <script>
     // apply the saved light/dark choice before first paint (light is the default)
-    try { const t = localStorage.getItem('sentinel-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    try { const t = localStorage.getItem('surveillance-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
 
   <script type="importmap">
@@ -82,7 +82,7 @@
           <div class="bbox" id="mBox"><span id="mBoxLabel">Object 90%</span></div>
           <div class="hud hud-tl"><span class="rec-dot"></span>REC · <span id="mCamId">CAM-01</span></div>
           <div class="hud hud-tr" id="mHudTime">--</div>
-          <div class="hud hud-bl">SENTINEL AI · VIDEO ANALYTICS</div>
+          <div class="hud hud-bl">SURVEILLANCE DASHBOARD · VIDEO ANALYTICS</div>
           <div class="hud hud-br" id="mHudLoc">--</div>
         </div>
 
@@ -131,7 +131,7 @@
           <div class="scanlines"></div>
           <div class="hud hud-tl"><span class="rec-dot"></span>LIVE · <span id="lCamId">CAM-01</span></div>
           <div class="hud hud-tr" id="lHudTime">--</div>
-          <div class="hud hud-bl">SENTINEL AI · LIVE VIEW</div>
+          <div class="hud hud-bl">SURVEILLANCE DASHBOARD · LIVE VIEW</div>
           <div class="hud hud-br" id="lHudLoc">--</div>
         </div>
 
