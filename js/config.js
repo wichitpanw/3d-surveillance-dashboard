@@ -1,5 +1,7 @@
 // Demo configuration — edit names, positions, timing and video paths here.
-// 3D positions are in scene units: x = left/right, y = height (each floor is 4 units), z = front(+)/back(-).
+// 3D positions are in metres from the map pin at the building's centre: x = east (+) / west (−),
+// y = height, z = south (+) / north (−, the lake side). Floors: G = 0 m, L1 = 9 m, L2 = 17.5 m, roof ≈ 26 m.
+// The building spans roughly x −132…+109 and z −108…+138; the main curved entrance is the north-east corner.
 window.APP_CONFIG = {
   intervalMs: 10000,      // time between events at speed 1x
   firstEventMs: 2500,     // delay before the first event after page load
@@ -7,15 +9,20 @@ window.APP_CONFIG = {
 
   // snapshot = still shown as the camera's live view (a calm frame from its clip); analytics = AI models listed for it.
   cameras: [
-    { id: 'CAM-01', name: 'Lobby Overview',      location: 'Main Lobby',             floor: 'L1', pos: [-7, 3.4, 5],   look: [0.3, -1, 0.5],
+    // inside the curved glass lobby at the north-east entrance
+    { id: 'CAM-01', name: 'Lobby Overview',      location: 'Main Lobby',             floor: 'G',  pos: [86, 7, -78],    look: [-0.6, -0.8, 0.5],
       snapshot: 'snapshots/cam01.jpg', analytics: ['Fall Detection', 'People Counting', 'Loitering'] },
-    { id: 'CAM-02', name: 'Entrance Gate',       location: 'Main Entrance',          floor: 'L1', pos: [0, 4.2, 15],   look: [0, -1, 0.9],
+    // on the forecourt pole facing the entrance stairs
+    { id: 'CAM-02', name: 'Entrance Gate',       location: 'Main Entrance',          floor: 'G',  pos: [122, 9, -116],  look: [-0.7, -0.5, 0.6],
       snapshot: 'snapshots/cam02.jpg', analytics: ['Weapon Detection', 'Face Match', 'People Counting'] },
-    { id: 'CAM-03', name: 'Exhibition Hall B',   location: 'Exhibition Hall',        floor: 'L2', pos: [7, 7.4, -2],   look: [-0.4, -1, 0.4],
+    // high in the exhibition halls in the middle of the building
+    { id: 'CAM-03', name: 'Exhibition Hall B',   location: 'Exhibition Hall',        floor: 'G',  pos: [-12, 14, 12],   look: [0.3, -1, 0.3],
       snapshot: 'snapshots/cam03.jpg', analytics: ['Fight Detection', 'Crowd Density', 'Abandoned Object'] },
-    { id: 'CAM-04', name: 'Server Room Door',    location: 'Restricted · Server Rm', floor: 'L3', pos: [-11, 11.4, -3], look: [0.2, -1, -0.5],
+    // L2 west wing, outside the restricted server room
+    { id: 'CAM-04', name: 'Server Room Door',    location: 'Restricted · Server Rm', floor: 'L2', pos: [-98, 21, -20],  look: [-0.5, -1, 0.1],
       snapshot: 'snapshots/cam04.jpg', analytics: ['Intrusion', 'Line Crossing', 'Tailgating'] },
-    { id: 'CAM-05', name: 'Kitchen & Dock',      location: 'Loading Dock / Kitchen', floor: 'L1', pos: [12, 3.4, -7],  look: [0.3, -1, -0.6],
+    // west loading yard, covering the dock and the kitchen door
+    { id: 'CAM-05', name: 'Kitchen & Dock',      location: 'Loading Dock / Kitchen', floor: 'G',  pos: [-108, 7, 96],   look: [-0.6, -0.7, 0.2],
       snapshot: 'snapshots/cam05.jpg', analytics: ['Fire & Smoke', 'PPE Check', 'Vehicle Dwell'] }
   ],
 

@@ -27,7 +27,13 @@
     <section class="panel panel-3d">
       <div class="panel-head">
         <div class="panel-title"><span class="title-bar"></span>3D INTERACTIVE BUILDING</div>
-        <div class="panel-hint">Drag to rotate · Scroll to zoom · Click a camera</div>
+        <div class="panel-tools">
+          <div class="panel-hint">Drag to rotate · Scroll to zoom · Click a camera</div>
+          <div class="view-toggle" role="group" aria-label="Building view">
+            <button id="viewExterior" class="on" aria-pressed="true" title="Outside view">Exterior</button>
+            <button id="viewXray" aria-pressed="false" title="See floors and indoor cameras (X)">X-Ray</button>
+          </div>
+        </div>
       </div>
       <div class="scene-wrap" id="scene">
         <div class="scene-loading" id="sceneLoading">Loading 3D venue…</div>

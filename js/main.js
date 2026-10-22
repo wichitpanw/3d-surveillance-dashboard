@@ -437,12 +437,23 @@
     try { localStorage.setItem('surveillance-theme', next); } catch (e) { /* remembering is optional */ }
   }
 
+  function setView(next) {
+    const v = window.Scene3D?.setView(next) || next;
+    for (const [id, name] of [['#viewExterior', 'exterior'], ['#viewXray', 'xray']]) {
+      $(id).classList.toggle('on', v === name);
+      $(id).setAttribute('aria-pressed', String(v === name));
+    }
+    return v;
+  }
+  $('#viewExterior').addEventListener('click', () => setView('exterior'));
+  $('#viewXray').addEventListener('click', () => setView('xray'));
+
   // keep the 3D scene in step with the page theme, whoever changes it (our button or the host viewer)
   new MutationObserver(() => {
     window.Scene3D?.setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-  // Hidden booth-operator keys: P pause, +/- speed, N next event, F fullscreen, M mute, T theme, Esc close
+  // Hidden booth-operator keys: P pause, +/- speed, N next event, F fullscreen, M mute, T theme, X x-ray, Esc close
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
@@ -450,6 +461,7 @@
     else if (k === 'f') toggleFullscreen();
     else if (k === 'm') toggleMute();
     else if (k === 't') toggleTheme();
+    else if (k === 'x') toast(setView($('#viewXray').classList.contains('on') ? 'exterior' : 'xray') === 'xray' ? 'X-Ray view' : 'Exterior view');
     else if (k === 'p') toast(EventEngine.toggle() ? 'Event loop paused' : 'Event loop resumed');
     else if (k === '+' || k === '=') toast(`Speed ${EventEngine.setSpeed(1)}x`);
     else if (k === '-' || k === '_') toast(`Speed ${EventEngine.setSpeed(-1)}x`);
