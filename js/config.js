@@ -42,9 +42,8 @@ window.APP_CONFIG = {
     },
     {
       key: 'weapon', type: 'Weapon Detection', target: 'Firearm', camId: 'CAM-02', severity: 'critical',
-      video: 'videos/event2.mp4', confidence: [91, 98], box: [41, 31, 16, 60], boxAt: 4.5, boxUntil: 8.3,
-      track: [[4.5, 41, 31, 16, 60], [5.5, 42, 32, 14, 58], [6.25, 43, 33, 13, 64], [7, 36, 36, 16, 64], [7.75, 33, 40, 14, 60]],
-      desc: 'A handgun-shaped object was identified in the hand of a visitor approaching the main entrance gate. Security lockdown protocol suggested.'
+      video: 'videos/event2.mp4', confidence: [91, 98], box: [42, 30, 17, 60], boxAt: 3.7,
+      desc: 'A person in the entrance lobby drew a handgun from their waistband and visitors are fleeing the area. Security lockdown and police notification recommended.'
     },
     {
       key: 'fight', type: 'Fight Detection', target: 'Aggression', camId: 'CAM-03', severity: 'high',
