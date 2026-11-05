@@ -420,11 +420,16 @@
   $('#lClose').addEventListener('click', () => closeLive());
   liveModal.addEventListener('click', (e) => { if (e.target === liveModal) closeLive(); });
 
-  // ---------- Booth controls (keyboard only) ----------
+  // ---------- Booth controls ----------
   function toggleMute() {
     state.muted = !state.muted;
-    toast(state.muted ? 'Sound off' : 'Sound on');
+    $('#btnSound').classList.toggle('muted', state.muted);
+    $('#btnSound').setAttribute('aria-pressed', String(!state.muted));
+    $('#btnSoundText').textContent = state.muted ? 'Sound off' : 'Sound on';
+    // a click also unlocks browser audio, so confirm "on" with a short beep
+    if (!state.muted) beep('medium');
   }
+  $('#btnSound').addEventListener('click', toggleMute);
 
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();

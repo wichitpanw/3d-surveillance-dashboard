@@ -51,7 +51,14 @@
     <section class="panel panel-events">
       <div class="panel-head">
         <div class="panel-title"><span class="title-bar red"></span>EVENT ALERT</div>
-        <div class="live-chip"><span class="pulse-dot red"></span>LIVE</div>
+        <div class="panel-tools">
+          <button class="sound-btn" id="btnSound" aria-pressed="true" title="Turn alert sound on or off (M)">
+            <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+            <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+            <span id="btnSoundText">Sound on</span>
+          </button>
+          <div class="live-chip"><span class="pulse-dot red"></span>LIVE</div>
+        </div>
       </div>
       <div class="event-list" id="eventList">
         <div class="empty" id="emptyState">
