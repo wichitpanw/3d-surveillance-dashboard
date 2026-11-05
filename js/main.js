@@ -9,7 +9,8 @@
     weapon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 7h18l1 3h-8l-1 2h-3l-2 7H4l2-7H2z"/><path d="M12 10v2"/></svg>',
     fight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 8v6l-2 6M6 14l2 6M18 8v6l2 6M18 14l-2 6M6 10l5 1M18 10l-5 1"/><path d="m11 9 2 4M13 9l-2 4"/></svg>',
     intrusion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/><path d="M12 8v4M12 16h.01"/></svg>',
-    fire: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 2-8 1.5 1 2.5 2.5 3 4 .5-3 1-5 1-8z"/><path d="M12 22a3 3 0 0 1-3-3c0-2 3-4 3-4s3 2 3 4a3 3 0 0 1-3 3z"/></svg>'
+    fire: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 2-8 1.5 1 2.5 2.5 3 4 .5-3 1-5 1-8z"/><path d="M12 22a3 3 0 0 1-3-3c0-2 3-4 3-4s3 2 3 4a3 3 0 0 1-3 3z"/></svg>',
+    smoking: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16h14v4H2zM20 16v4M23 16v4"/><path d="M17 12c0-2-2-2-2-4s2-2 2-4M21 12c0-2-2-2-2-4s2-2 2-4"/></svg>'
   };
   const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 

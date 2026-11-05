@@ -23,7 +23,10 @@ window.APP_CONFIG = {
       snapshot: 'snapshots/cam04.jpg', analytics: ['Intrusion', 'Line Crossing', 'Tailgating'] },
     // west loading yard, covering the dock and the kitchen door
     { id: 'CAM-05', name: 'Kitchen & Dock',      location: 'Loading Dock / Kitchen', floor: 'G',  pos: [-108, 7, 96],   look: [-0.6, -0.7, 0.2],
-      snapshot: 'snapshots/cam05.jpg', analytics: ['Fire & Smoke', 'PPE Check', 'Vehicle Dwell'] }
+      snapshot: 'snapshots/cam05.jpg', analytics: ['Fire & Smoke', 'PPE Check', 'Vehicle Dwell'] },
+    // under the overhang on the east colonnade, by the no-smoking sign (provisional position)
+    { id: 'CAM-06', name: 'Entrance Walkway',    location: 'East Walkway',           floor: 'G',  pos: [108, 6.5, -48], look: [-0.2, -0.7, 0.6],
+      snapshot: 'snapshots/cam06.jpg', analytics: ['Smoking Detection', 'People Counting', 'Loitering'] }
   ],
 
   // The loop plays these in order and starts over after the last one.
@@ -61,6 +64,11 @@ window.APP_CONFIG = {
       track: [[1, 42, 42, 12, 29], [2, 40, 34, 10, 38], [3, 37, 27, 18, 48], [4, 39, 12, 13, 62], [5, 37, 32, 17, 40],
               [6, 37, 32, 15, 40], [7, 33, 30, 21, 42], [8, 24, 32, 38, 40], [9, 24, 36, 37, 39], [10, 24, 36, 38, 40]],
       desc: 'Open flame and rising smoke detected in the kitchen area next to the loading dock. Fire alarm escalation and evacuation of the zone recommended.'
+    },
+    {
+      key: 'smoking', type: 'Smoking Detection', target: 'Cigarette', camId: 'CAM-06', severity: 'medium',
+      video: 'videos/event6.mp4', confidence: [87, 96], box: [53, 24, 19, 76], boxAt: 4.3,
+      desc: 'A person was detected lighting and smoking a cigarette in a no-smoking area beside the building entrance. Staff reminder recommended.'
     }
   ]
 };

@@ -1,7 +1,7 @@
 # 3D Surveillance Dashboard
 
-Booth demo of an AI video-surveillance dashboard: a 3D venue with 5 cameras, AI event alerts that loop
-(Fall, Weapon, Fight, Intrusion, Fire), event clips with an AI bounding box, and a live view per camera.
+Booth demo of an AI video-surveillance dashboard: a 3D venue with 6 cameras, AI event alerts that loop
+(Fall, Weapon, Fight, Intrusion, Fire, Smoking), event clips with an AI bounding box, and a live view per camera.
 
 The 3D venue is modelled in metres after a real convention centre: the outline was traced on Esri satellite
 imagery (0.58 m/px) and the façade, roof and forecourt shaped from street-level panoramas and an
@@ -26,7 +26,7 @@ Everything lives in `js/config.js`:
   (`boxAt`, `boxUntil`, `box` or keyframed `track`).
 - `intervalMs` — time between events.
 
-Media: `videos/event1.mp4` … `event5.mp4` (event clips) and `snapshots/cam01.jpg` … `cam05.jpg` (live views).
+Media: `videos/event1.mp4` … `event6.mp4` (event clips) and `snapshots/cam01.jpg` … `cam06.jpg` (live views).
 
 ## Booth keys
 
