@@ -7,26 +7,28 @@ window.APP_CONFIG = {
   firstEventMs: 2500,     // delay before the first event after page load
   maxCards: 20,           // cards kept in the Event Alert list
 
-  // model = 3D marker: 'dome' (ceiling, indoor) or 'bullet' (wall / pole, outdoor).
+  // model = 3D marker: 'dome' (ceiling mount; pos = just under the ceiling, plate top at pos.y + 1.2 m) or 'bullet'.
+  // mount (bullet only) = [nx, nz] outward normal of the wall it is fixed to (wall face 3.55 m behind pos),
+  //   or 'ceiling' to hang it from a ceiling / soffit 2.75 m above pos. The body turns on its joint toward look.
   // snapshot = still shown as the camera's live view (a calm frame from its clip); analytics = AI models listed for it.
   cameras: [
-    // inside the curved glass lobby at the north-east entrance
-    { id: 'CAM-01', name: 'Lobby Overview',      location: 'Main Lobby',             floor: 'G',  pos: [86, 7, -78],    look: [-0.6, -0.8, 0.5], model: 'dome',
+    // ceiling dome in the curved glass lobby at the north-east entrance (ceiling ≈ 8.6 m, under the L1 slab)
+    { id: 'CAM-01', name: 'Lobby Overview',      location: 'Main Lobby',             floor: 'G',  pos: [86, 7.4, -78],   look: [-0.6, -0.8, 0.5], model: 'dome',
       snapshot: 'snapshots/cam01.jpg', analytics: ['Fall Detection', 'People Counting', 'Loitering'] },
-    // wall-mounted on the lobby glazing just north of the entrance canopy, under the overhang, looking down the stair terrace
-    { id: 'CAM-02', name: 'Entrance Gate',       location: 'Main Entrance',          floor: 'G',  pos: [106.7, 6.6, -86.9], look: [0.54, -0.28, -0.79], model: 'bullet',
+    // bullet on the lobby glazing just north of the entrance canopy, under the overhang, looking down the stair terrace
+    { id: 'CAM-02', name: 'Entrance Gate',       location: 'Main Entrance',          floor: 'G',  pos: [107.3, 5, -87.1], look: [0.51, -0.29, -0.81], model: 'bullet', mount: [0.91, -0.41],
       snapshot: 'snapshots/cam02.jpg', analytics: ['Weapon Detection', 'Face Match', 'People Counting'] },
-    // high in the exhibition halls in the middle of the building
-    { id: 'CAM-03', name: 'Exhibition Hall B',   location: 'Exhibition Hall',        floor: 'G',  pos: [-12, 14, 12],   look: [0.3, -1, 0.3], model: 'dome',
+    // bullet high on the partition wall between Halls B and C (x ≈ 1.5), looking west across Hall B
+    { id: 'CAM-03', name: 'Exhibition Hall B',   location: 'Exhibition Hall',        floor: 'G',  pos: [-2.45, 10, 13],  look: [-0.84, -0.54, 0], model: 'bullet', mount: [-1, 0],
       snapshot: 'snapshots/cam03.jpg', analytics: ['Fight Detection', 'Crowd Density', 'Abandoned Object'] },
-    // L2 west wing, outside the restricted server room
-    { id: 'CAM-04', name: 'Server Room Door',    location: 'Restricted · Server Rm', floor: 'L2', pos: [-98, 21, -20],  look: [-0.5, -1, 0.1], model: 'dome',
+    // ceiling dome in the L2 west corridor, outside the restricted server-room door (ceiling ≈ 22.5 m)
+    { id: 'CAM-04', name: 'Server Room Door',    location: 'Restricted · Server Rm', floor: 'L2', pos: [-98, 21.3, -20], look: [-0.5, -1, 0.1], model: 'dome',
       snapshot: 'snapshots/cam04.jpg', analytics: ['Intrusion', 'Line Crossing', 'Tailgating'] },
-    // west loading yard, covering the dock and the kitchen door
-    { id: 'CAM-05', name: 'Kitchen & Dock',      location: 'Loading Dock / Kitchen', floor: 'G',  pos: [-108, 7, 96],   look: [-0.6, -0.7, 0.2], model: 'bullet',
+    // bullet on the west podium wall (x = −102) under the overhang, covering the loading dock beside the kitchen
+    { id: 'CAM-05', name: 'Kitchen & Dock',      location: 'Loading Dock / Kitchen', floor: 'G',  pos: [-105.55, 5, 96], look: [-0.6, -0.7, 0.2], model: 'bullet', mount: [-1, 0],
       snapshot: 'snapshots/cam05.jpg', analytics: ['Fire & Smoke', 'PPE Check', 'Vehicle Dwell'] },
-    // under the overhang on the east colonnade, by the no-smoking sign (provisional position)
-    { id: 'CAM-06', name: 'Entrance Walkway',    location: 'East Walkway',           floor: 'G',  pos: [108, 6.5, -48], look: [-0.2, -0.7, 0.6], model: 'bullet',
+    // bullet hung from the overhang soffit (8 m) on the east colonnade, looking south along the walkway by the no-smoking sign
+    { id: 'CAM-06', name: 'Entrance Walkway',    location: 'East Walkway',           floor: 'G',  pos: [107, 5.25, -48], look: [-0.2, -0.7, 0.6], model: 'bullet', mount: 'ceiling',
       snapshot: 'snapshots/cam06.jpg', analytics: ['Smoking Detection', 'People Counting', 'Loitering'] }
   ],
 

@@ -856,34 +856,59 @@
     }
   }
 
-  // Wall/pole bullet camera. Local frame: +z = look direction (yaw applied by the group), mount behind at −z.
-  function buildBullet(pitch, accentMat, ledMat) {
-    const root = new THREE.Group();
-    // wall plate + arm + ball joint
-    part(new THREE.BoxGeometry(2.4, 2.6, 0.35), camMats.housing, 0, 0.2, -3.4, root);
-    const arm = part(zCyl(0.32, 0.4, 2.2, 20), camMats.housing, 0, 0.2, -2.25, root);
-    arm.rotation.x = -0.12;
-    part(new THREE.SphereGeometry(0.55, 20, 14), camMats.trim, 0, 0.05, -1.2, root);
+  // Bullet camera on a bracket. The bracket is fixed to a wall (mount = [nx, nz], the wall's outward normal)
+  // or hangs from a ceiling / soffit (mount = 'ceiling'); the camera body then turns on the ball joint to
+  // face the look direction, as a real bracket would. Model origin = cam.pos; the bracket's back face sits
+  // BULLET_REACH metres behind it (wall) or BULLET_DROP metres above it (ceiling).
+  const BULLET_REACH = 3.55, BULLET_DROP = 2.75;
 
-    const pivot = new THREE.Group();
-    pivot.position.set(0, 0.05, -1.2);
-    pivot.rotation.x = pitch;
-    root.add(pivot);
-    part(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 16), camMats.trim, 0, 0.45, 0, pivot);   // neck
-
+  function bulletBody(parent, accentMat, ledMat, y) {
     const body = new THREE.Group();
-    body.position.set(0, 1.55, 1.2);
-    pivot.add(body);
+    body.position.set(0, y, 1.2);
+    parent.add(body);
     part(zCyl(1.05, 1.05, 4.4), camMats.housing, 0, 0, 0, body);
     part(zCyl(0.9, 1.05, 0.5), camMats.trim, 0, 0, -2.45, body);                        // rear cap
     part(zCyl(1.08, 1.08, 0.22), accentMat, 0, 0, 1.55, body);                          // status band
     lensFace(body, 2.3, 0.98);
     // sun shield: half shell over the top, overhanging the front
-    const shield = part(new THREE.CylinderGeometry(1.28, 1.28, 5.6, 32, 1, true, -Math.PI / 2, Math.PI), camMats.housing, 0, 0.05, 0.35, body);
+    const shield = part(new THREE.CylinderGeometry(1.28, 1.28, 5.6, 32, 1, true, Math.PI / 2, Math.PI), camMats.housing, 0, 0.05, 0.35, body);
     shield.rotation.x = Math.PI / 2;
     shield.material = camMats.housing.clone();
     shield.material.side = THREE.DoubleSide;
     part(new THREE.SphereGeometry(0.13, 12, 10), ledMat, 0.55, -0.72, 2.42, body);         // status LED
+  }
+
+  function buildBullet(yaw, pitch, mount, accentMat, ledMat) {
+    const root = new THREE.Group();
+    const pivot = new THREE.Group();
+    pivot.rotation.order = 'YXZ';
+    pivot.rotation.x = pitch;
+    root.add(pivot);
+    if (mount === 'ceiling') {
+      // ceiling plate + drop tube; the camera hangs under the joint
+      part(new THREE.BoxGeometry(2.4, 0.35, 2.4), camMats.housing, 0, BULLET_DROP - 0.175, 0, root);
+      part(new THREE.CylinderGeometry(0.32, 0.4, BULLET_DROP - 0.9, 20), camMats.housing, 0, (BULLET_DROP + 0.6) / 2, 0, root);
+      part(new THREE.SphereGeometry(0.55, 20, 14), camMats.trim, 0, 0.6, 0, root);
+      pivot.position.set(0, 0.6, 0);
+      pivot.rotation.y = yaw;
+      part(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 16), camMats.trim, 0, -0.35, 0, pivot);   // neck
+      bulletBody(pivot, accentMat, ledMat, -1.65);
+    } else {
+      // wall plate + arm + ball joint, oriented to the wall; the body yaws on the joint (±75°)
+      const n = Array.isArray(mount) ? mount : [Math.sin(yaw), Math.cos(yaw)];
+      const wallYaw = Math.atan2(n[0], n[1]);
+      let rel = Math.atan2(Math.sin(yaw - wallYaw), Math.cos(yaw - wallYaw));
+      rel = Math.max(-1.3, Math.min(1.3, rel));
+      root.rotation.y = wallYaw;
+      part(new THREE.BoxGeometry(2.4, 2.6, 0.35), camMats.housing, 0, 0.2, -BULLET_REACH + 0.175, root);
+      const arm = part(zCyl(0.32, 0.4, 2.2, 20), camMats.housing, 0, 0.2, -2.25, root);
+      arm.rotation.x = -0.12;
+      part(new THREE.SphereGeometry(0.55, 20, 14), camMats.trim, 0, 0.05, -1.2, root);
+      pivot.position.set(0, 0.05, -1.2);
+      pivot.rotation.y = rel;
+      part(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 16), camMats.trim, 0, 0.45, 0, pivot);   // neck
+      bulletBody(pivot, accentMat, ledMat, 1.55);
+    }
     return root;
   }
 
@@ -921,8 +946,13 @@
 
     const accentMat = new THREE.MeshStandardMaterial({ color: P.marker, emissive: P.marker, emissiveIntensity: 0.6, roughness: 0.4 });
     const ledMat = new THREE.MeshBasicMaterial({ color: P.marker });
-    const model = (cam.model || 'bullet') === 'dome' ? buildDome(pitch, accentMat, ledMat) : buildBullet(pitch, accentMat, ledMat);
-    model.rotation.y = yaw;
+    let model;
+    if (cam.model === 'dome') {
+      model = buildDome(pitch, accentMat, ledMat);
+      model.rotation.y = yaw;
+    } else {
+      model = buildBullet(yaw, pitch, cam.mount, accentMat, ledMat);
+    }
     model.scale.setScalar(MARKER_SCALE);
 
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: P.marker, transparent: true, opacity: 0.45, depthWrite: false, depthTest: false }));
