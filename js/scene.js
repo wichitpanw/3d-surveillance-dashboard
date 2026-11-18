@@ -101,6 +101,7 @@
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
+    renderer.autoClear = false;   // venue and camera markers are drawn in two passes (see animate)
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     el.appendChild(renderer.domElement);
@@ -787,51 +788,173 @@
   }
 
   // ---------- Camera markers ----------
-  // Markers draw on top of everything so indoor cameras stay visible through the roof.
+  // Cameras are small CCTV models (ceiling dome indoors, wall/pole bullet outdoors) drawn in their own
+  // pass after the venue with the depth buffer cleared, so they stay visible through the roof while
+  // still shading and occluding themselves correctly. Sizes are exaggerated ~15× to read at overview distance.
   function overlay(m) { Object.assign(m, { depthTest: false, depthWrite: false, transparent: true }); return m; }
 
+  const MARKER_SCALE = 1.4;
+  let markerScene = null;
+  const camMats = {};
+  let haloTex = null;
+
+  function initMarkerScene() {
+    markerScene = new THREE.Scene();
+    markerScene.add(new THREE.HemisphereLight(0xffffff, 0x8090a0, 1.6));
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    key.position.set(1, 2, 1.2);
+    const rim = new THREE.DirectionalLight(0xbfd4ff, 0.9);
+    rim.position.set(-1.5, 0.6, -1);
+    markerScene.add(key, rim);
+    if (window.LIB.RoomEnvironment) {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      markerScene.environment = pmrem.fromScene(new window.LIB.RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+    }
+    Object.assign(camMats, {
+      housing: new THREE.MeshStandardMaterial({ color: 0xf1f3f5, roughness: 0.38, metalness: 0.15 }),
+      trim: new THREE.MeshStandardMaterial({ color: 0xc9ced4, roughness: 0.5, metalness: 0.35 }),
+      black: new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.55, metalness: 0.2 }),
+      glass: new THREE.MeshStandardMaterial({ color: 0x050a12, roughness: 0.05, metalness: 0.9 }),
+      lens: new THREE.MeshStandardMaterial({ color: 0x1b3d6b, roughness: 0.08, metalness: 1, emissive: 0x0a1d38 }),
+      ir: new THREE.MeshStandardMaterial({ color: 0x3a0d10, roughness: 0.3, metalness: 0.3 }),
+      bubble: new THREE.MeshPhysicalMaterial({ color: 0x1a222c, roughness: 0.04, metalness: 0.1, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide })
+    });
+    // soft radial glow behind each camera: makes it findable from far away and carries the alert colour
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grd.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grd.addColorStop(0.35, 'rgba(255,255,255,0.35)');
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 128, 128);
+    haloTex = new THREE.CanvasTexture(c);
+  }
+
+  function part(geo, material, x = 0, y = 0, z = 0, parent) {
+    const m = new THREE.Mesh(geo, material);
+    m.position.set(x, y, z);
+    if (parent) parent.add(m);
+    return m;
+  }
+  // cylinder whose axis runs along +z (the camera's forward direction)
+  function zCyl(rTop, rBot, len, seg = 32, open = false) {
+    return new THREE.CylinderGeometry(rTop, rBot, len, seg, 1, open).rotateX(Math.PI / 2);
+  }
+
+  // Front of a camera: bezel, dark glass, lens with a blue coating and a ring of IR LEDs.
+  function lensFace(parent, z, r) {
+    part(zCyl(r, r, 0.25), camMats.black, 0, 0, z, parent);
+    part(new THREE.CircleGeometry(r * 0.88, 32), camMats.glass, 0, 0, z + 0.13, parent);
+    part(zCyl(r * 0.38, r * 0.44, 0.3), camMats.black, 0, 0, z + 0.1, parent);
+    part(new THREE.CircleGeometry(r * 0.3, 24), camMats.lens, 0, 0, z + 0.26, parent);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      part(new THREE.CircleGeometry(r * 0.08, 12), camMats.ir, Math.cos(a) * r * 0.64, Math.sin(a) * r * 0.64, z + 0.14, parent);
+    }
+  }
+
+  // Wall/pole bullet camera. Local frame: +z = look direction (yaw applied by the group), mount behind at −z.
+  function buildBullet(pitch, accentMat, ledMat) {
+    const root = new THREE.Group();
+    // wall plate + arm + ball joint
+    part(new THREE.BoxGeometry(2.4, 2.6, 0.35), camMats.housing, 0, 0.2, -3.4, root);
+    const arm = part(zCyl(0.32, 0.4, 2.2, 20), camMats.housing, 0, 0.2, -2.25, root);
+    arm.rotation.x = -0.12;
+    part(new THREE.SphereGeometry(0.55, 20, 14), camMats.trim, 0, 0.05, -1.2, root);
+
+    const pivot = new THREE.Group();
+    pivot.position.set(0, 0.05, -1.2);
+    pivot.rotation.x = pitch;
+    root.add(pivot);
+    part(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 16), camMats.trim, 0, 0.45, 0, pivot);   // neck
+
+    const body = new THREE.Group();
+    body.position.set(0, 1.55, 1.2);
+    pivot.add(body);
+    part(zCyl(1.05, 1.05, 4.4), camMats.housing, 0, 0, 0, body);
+    part(zCyl(0.9, 1.05, 0.5), camMats.trim, 0, 0, -2.45, body);                        // rear cap
+    part(zCyl(1.08, 1.08, 0.22), accentMat, 0, 0, 1.55, body);                          // status band
+    lensFace(body, 2.3, 0.98);
+    // sun shield: half shell over the top, overhanging the front
+    const shield = part(new THREE.CylinderGeometry(1.28, 1.28, 5.6, 32, 1, true, -Math.PI / 2, Math.PI), camMats.housing, 0, 0.05, 0.35, body);
+    shield.rotation.x = Math.PI / 2;
+    shield.material = camMats.housing.clone();
+    shield.material.side = THREE.DoubleSide;
+    part(new THREE.SphereGeometry(0.13, 12, 10), ledMat, 0.55, -0.72, 2.42, body);         // status LED
+    return root;
+  }
+
+  // Ceiling dome camera: white base on the ceiling, smoked bubble, lens module aimed along the look direction.
+  function buildDome(pitch, accentMat, ledMat) {
+    const root = new THREE.Group();
+    part(new THREE.CylinderGeometry(2.7, 2.7, 0.3, 40), camMats.trim, 0, 1.05, 0, root);       // ceiling plate
+    part(new THREE.CylinderGeometry(2.45, 2.6, 0.9, 40), camMats.housing, 0, 0.45, 0, root);    // base
+    const band = part(new THREE.TorusGeometry(2.25, 0.14, 10, 48), accentMat, 0, -0.02, 0, root);
+    band.rotation.x = Math.PI / 2;
+    part(new THREE.SphereGeometry(0.14, 12, 10), ledMat, 1.9, 0.2, 1.2, root);
+
+    const gimbal = new THREE.Group();
+    gimbal.position.set(0, -0.55, 0);
+    gimbal.rotation.x = pitch;
+    root.add(gimbal);
+    part(new THREE.SphereGeometry(1.05, 24, 18), camMats.black, 0, 0, 0, gimbal);
+    part(zCyl(0.62, 0.7, 0.9), camMats.black, 0, 0, 0.75, gimbal);
+    part(new THREE.CircleGeometry(0.5, 28), camMats.lens, 0, 0, 1.21, gimbal);
+
+    // bubble last so the transparent shell draws over the lens module
+    const bubble = part(new THREE.SphereGeometry(2.05, 40, 20, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), camMats.bubble, 0, 0, 0, root);
+    bubble.renderOrder = 2;
+    return root;
+  }
+
   function addCamera(cam) {
+    if (!markerScene) initMarkerScene();
     const group = new THREE.Group();
     group.position.set(...cam.pos);
-    group.renderOrder = 10;
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(1.8, 20, 16), overlay(new THREE.MeshBasicMaterial({ color: P.marker })));
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(4, 20, 16), overlay(new THREE.MeshBasicMaterial({ color: P.marker, opacity: 0.18 })));
-
-    // view cone with its apex at the camera, pointing along cam.look
-    const coneH = 18;
-    const coneGeo = new THREE.ConeGeometry(9, coneH, 28, 1, true);
-    coneGeo.translate(0, -coneH / 2, 0);
-    const cone = new THREE.Mesh(coneGeo, overlay(new THREE.MeshBasicMaterial({ color: P.marker, opacity: 0.1, side: THREE.DoubleSide })));
     const dir = new THREE.Vector3(...cam.look).normalize();
-    cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().negate());
-    const coneEdges = new THREE.LineSegments(new THREE.EdgesGeometry(coneGeo, 30), overlay(new THREE.LineBasicMaterial({ color: P.marker, opacity: 0.4 })));
-    cone.add(coneEdges);
+    const yaw = Math.atan2(dir.x, dir.z);
+    const pitch = Math.atan2(-dir.y, Math.hypot(dir.x, dir.z));   // + = tilted down
+
+    const accentMat = new THREE.MeshStandardMaterial({ color: P.marker, emissive: P.marker, emissiveIntensity: 0.6, roughness: 0.4 });
+    const ledMat = new THREE.MeshBasicMaterial({ color: P.marker });
+    const model = (cam.model || 'bullet') === 'dome' ? buildDome(pitch, accentMat, ledMat) : buildBullet(pitch, accentMat, ledMat);
+    model.rotation.y = yaw;
+    model.scale.setScalar(MARKER_SCALE);
+
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: P.marker, transparent: true, opacity: 0.45, depthWrite: false, depthTest: false }));
+    halo.scale.setScalar(12);
+    halo.renderOrder = -1;
+
+    // invisible hit volume so the small model is easy to hover and click
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(6, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
 
     // vertical drop line to the floor the camera serves (G / L1 / L2 from the config)
     const floorY = (FLOOR_Y[cam.floor] ?? 0) + 0.3;
     const drop = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, floorY - cam.pos[1], 0)]),
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, floorY - cam.pos[1], 0)]),
       overlay(new THREE.LineDashedMaterial({ color: P.marker, dashSize: 1, gapSize: 0.8, opacity: 0.7 }))
     );
     drop.computeLineDistances();
-    [head, glow, cone, coneEdges, drop].forEach((o) => { o.renderOrder = 10; });
+    drop.renderOrder = -1;
 
     const div = document.createElement('div');
     div.className = 'cam-label';
     div.innerHTML = `<span class="dot"></span>${cam.id}<span class="alert-text"></span>`;
     const lbl = new CSS2DObject(div);
-    lbl.position.set(0, 6, 0);
+    lbl.position.set(0, 8, 0);
 
-    group.add(head, glow, cone, drop, lbl);
-    scene.add(group);
+    group.add(halo, drop, model, hit, lbl);
+    markerScene.add(group);
 
-    head.userData.camId = cam.id;
-    glow.userData.camId = cam.id;
-    pickables.push(head, glow);
+    hit.userData.camId = cam.id;
+    pickables.push(hit);
 
     markers[cam.id] = {
-      cam, group, head, glow, cone, coneEdges, drop, div,
+      cam, group, model, halo, accentMat, ledMat, drop, div,
       floorY,
       alertUntil: 0,
       severity: 'critical',
@@ -981,16 +1104,18 @@
       const m = markers[id];
       const alert = now < m.alertUntil;
       const color = alert ? P[m.severity] : P.marker;
-      m.head.material.color.setHex(color);
-      m.glow.material.color.setHex(color);
-      m.cone.material.color.setHex(color);
-      m.coneEdges.material.color.setHex(color);
+      m.accentMat.color.setHex(color);
+      m.accentMat.emissive.setHex(color);
+      m.accentMat.emissiveIntensity = alert ? 0.7 + 0.5 * Math.abs(Math.sin(now * 0.008)) : 0.5;
+      m.ledMat.color.setHex(color);
+      // LED: slow heartbeat when online, fast blink on alert
+      m.ledMat.visible = alert ? Math.sin(now * 0.02) > 0 : (now + m.group.id * 397) % 2400 > 300;
+      m.halo.material.color.setHex(color);
       m.drop.material.color.setHex(color);
-      const s = alert ? 1 + 0.35 * Math.abs(Math.sin(now * 0.006)) : 1 + 0.08 * Math.sin(now * 0.002);
-      m.glow.scale.setScalar(s);
-      m.head.scale.setScalar(alert ? 1.25 : 1);
-      m.glow.material.opacity = alert ? 0.35 : 0.2;
-      m.cone.material.opacity = alert ? 0.24 + 0.1 * Math.sin(now * 0.01) : 0.12;
+      const s = alert ? 1.2 + 0.5 * Math.abs(Math.sin(now * 0.006)) : 1 + 0.06 * Math.sin(now * 0.002);
+      m.halo.scale.setScalar(14 * s);
+      m.halo.material.opacity = alert ? 0.6 : 0.28;
+      m.model.scale.setScalar(MARKER_SCALE * (alert ? 1.15 : 1));
       m.div.classList.toggle('alert', alert);
     }
 
@@ -1010,7 +1135,11 @@
       r.mesh.material.opacity = 0.9 * (1 - k);
     }
 
+    renderer.clear();
     renderer.render(scene, camera);
+    renderer.clearDepth();
+    renderer.render(markerScene, camera);
+    labelRenderer.render(markerScene, camera);
     labelRenderer.render(scene, camera);
   }
 
