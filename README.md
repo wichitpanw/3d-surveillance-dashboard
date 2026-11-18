@@ -20,7 +20,8 @@ The page needs an internet connection to load Three.js and the fonts.
 
 Everything lives in `js/config.js`:
 
-- `cameras` — name, location, floor (`G` / `L1` / `L2`), 3D position in metres, live-view snapshot and the AI analytics
+- `cameras` — name, location, floor (`G` / `L1` / `L2`), 3D position in metres, `model` (`dome` ceiling / `bullet` wall-pole
+  marker in 3D, aimed along `look`), live-view snapshot and the AI analytics
   listed for each camera. Coordinates: +x east, +z south, y up, origin at the building centre.
 - `events` — the looped AI events: clip path, severity, description, and when/where the AI box appears
   (`boxAt`, `boxUntil`, `box` or keyframed `track`).
