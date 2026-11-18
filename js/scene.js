@@ -793,7 +793,7 @@
   // still shading and occluding themselves correctly. Sizes are exaggerated ~15× to read at overview distance.
   function overlay(m) { Object.assign(m, { depthTest: false, depthWrite: false, transparent: true }); return m; }
 
-  const MARKER_SCALE = 1.4;
+  const MARKER_SCALE = 1;
   let markerScene = null;
   const camMats = {};
   let haloTex = null;
@@ -926,11 +926,11 @@
     model.scale.setScalar(MARKER_SCALE);
 
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: P.marker, transparent: true, opacity: 0.45, depthWrite: false, depthTest: false }));
-    halo.scale.setScalar(12);
+    halo.scale.setScalar(10);
     halo.renderOrder = -1;
 
     // invisible hit volume so the small model is easy to hover and click
-    const hit = new THREE.Mesh(new THREE.SphereGeometry(6, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(4.5, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
 
     // vertical drop line to the floor the camera serves (G / L1 / L2 from the config)
     const floorY = (FLOOR_Y[cam.floor] ?? 0) + 0.3;
@@ -945,7 +945,7 @@
     div.className = 'cam-label';
     div.innerHTML = `<span class="dot"></span>${cam.id}<span class="alert-text"></span>`;
     const lbl = new CSS2DObject(div);
-    lbl.position.set(0, 8, 0);
+    lbl.position.set(0, 6, 0);
 
     group.add(halo, drop, model, hit, lbl);
     markerScene.add(group);
@@ -1113,7 +1113,7 @@
       m.halo.material.color.setHex(color);
       m.drop.material.color.setHex(color);
       const s = alert ? 1.2 + 0.5 * Math.abs(Math.sin(now * 0.006)) : 1 + 0.06 * Math.sin(now * 0.002);
-      m.halo.scale.setScalar(14 * s);
+      m.halo.scale.setScalar(10 * s);
       m.halo.material.opacity = alert ? 0.6 : 0.28;
       m.model.scale.setScalar(MARKER_SCALE * (alert ? 1.15 : 1));
       m.div.classList.toggle('alert', alert);
