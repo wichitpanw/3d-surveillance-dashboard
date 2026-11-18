@@ -13,8 +13,8 @@ window.APP_CONFIG = {
     // inside the curved glass lobby at the north-east entrance
     { id: 'CAM-01', name: 'Lobby Overview',      location: 'Main Lobby',             floor: 'G',  pos: [86, 7, -78],    look: [-0.6, -0.8, 0.5], model: 'dome',
       snapshot: 'snapshots/cam01.jpg', analytics: ['Fall Detection', 'People Counting', 'Loitering'] },
-    // on the forecourt pole facing the entrance stairs
-    { id: 'CAM-02', name: 'Entrance Gate',       location: 'Main Entrance',          floor: 'G',  pos: [122, 9, -116],  look: [-0.7, -0.5, 0.6], model: 'bullet',
+    // wall-mounted on the lobby glazing just north of the entrance canopy, under the overhang, looking down the stair terrace
+    { id: 'CAM-02', name: 'Entrance Gate',       location: 'Main Entrance',          floor: 'G',  pos: [106.7, 6.6, -86.9], look: [0.54, -0.28, -0.79], model: 'bullet',
       snapshot: 'snapshots/cam02.jpg', analytics: ['Weapon Detection', 'Face Match', 'People Counting'] },
     // high in the exhibition halls in the middle of the building
     { id: 'CAM-03', name: 'Exhibition Hall B',   location: 'Exhibition Hall',        floor: 'G',  pos: [-12, 14, 12],   look: [0.3, -1, 0.3], model: 'dome',
