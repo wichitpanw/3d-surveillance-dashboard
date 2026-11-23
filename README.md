@@ -1,7 +1,7 @@
 # 3D Surveillance Dashboard
 
-Booth demo of an AI video-surveillance dashboard: a 3D venue with 6 cameras, AI event alerts that loop
-(Fall, Weapon, Fight, Intrusion, Fire, Smoking), event clips with an AI bounding box, and a live view per camera.
+Booth demo of an AI video-surveillance dashboard: a 3D venue with 8 cameras, AI event alerts that loop
+(Fall, Weapon, Fight, Intrusion, Fire, Smoking, Vehicle Collision, Illegal Parking), and event clips with an AI bounding box.
 
 The 3D venue is modelled in metres after a real convention centre: the outline was traced on Esri satellite
 imagery (0.58 m/px) and the façade, roof and forecourt shaped from street-level panoramas and an
@@ -20,14 +20,13 @@ The page needs an internet connection to load Three.js and the fonts.
 
 Everything lives in `js/config.js`:
 
-- `cameras` — name, location, floor (`G` / `L1` / `L2`), 3D position in metres, `model` (`dome` ceiling / `bullet` wall-pole
-  marker in 3D, aimed along `look`), live-view snapshot and the AI analytics
-  listed for each camera. Coordinates: +x east, +z south, y up, origin at the building centre.
+- `cameras` — name, location, floor (`G` / `L1` / `L2`), 3D position in metres, and `model` (`dome` ceiling / `bullet` wall-pole
+  marker in 3D, aimed along `look`). Coordinates: +x east, +z south, y up, origin at the building centre.
 - `events` — the looped AI events: clip path, severity, description, and when/where the AI box appears
   (`boxAt`, `boxUntil`, `box` or keyframed `track`).
 - `intervalMs` — time between events.
 
-Media: `videos/event1.mp4` … `event6.mp4` (event clips) and `snapshots/cam01.jpg` … `cam06.jpg` (live views).
+Media: `videos/event1.mp4` … `event8.mp4` (event clips).
 
 ## Booth keys
 

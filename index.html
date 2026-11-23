@@ -45,7 +45,6 @@
           <span><i class="lg lg-med"></i>Medium</span>
         </div>
       </div>
-      <div class="cam-strip" id="camStrip"></div>
     </section>
 
     <section class="panel panel-events">
@@ -116,52 +115,6 @@
           <div class="actions">
             <button class="btn btn-primary" id="bAck">Acknowledge</button>
             <button class="btn btn-danger" id="bDispatch">Dispatch Security</button>
-          </div>
-        </aside>
-      </div>
-    </div>
-  </div>
-
-  <!-- Camera live view modal -->
-  <div class="modal" id="liveModal" aria-hidden="true">
-    <div class="modal-box live-box" role="dialog" aria-modal="true">
-      <header class="modal-head">
-        <div class="modal-title">
-          <span class="live-chip"><span class="pulse-dot red"></span>LIVE</span>
-          <div>
-            <h2 id="lTitle">Camera</h2>
-            <div class="modal-sub" id="lSub"></div>
-          </div>
-        </div>
-        <button class="icon-btn" id="lClose" title="Close (Esc)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-      </header>
-
-      <div class="modal-grid">
-        <div class="player live-player">
-          <img id="lImg" alt="" />
-          <div class="scanlines"></div>
-          <div class="hud hud-tl"><span class="rec-dot"></span>LIVE · <span id="lCamId">CAM-01</span></div>
-          <div class="hud hud-tr" id="lHudTime">--</div>
-          <div class="hud hud-bl">SURVEILLANCE DASHBOARD · LIVE VIEW</div>
-          <div class="hud hud-br" id="lHudLoc">--</div>
-        </div>
-
-        <aside class="details">
-          <dl class="kv">
-            <dt>Camera</dt><dd id="lCam">-</dd>
-            <dt>Location</dt><dd id="lLoc">-</dd>
-            <dt>Stream</dt><dd>1920×1080 · 25 fps · H.265</dd>
-            <dt>Status</dt><dd id="lStatus">-</dd>
-          </dl>
-          <div class="ai-desc">
-            <div class="ai-desc-title">AI ANALYTICS RUNNING</div>
-            <div class="analytics" id="lAnalytics"></div>
-          </div>
-          <div class="recent">
-            <div class="recent-title">RECENT EVENTS ON THIS CAMERA</div>
-            <ol class="recent-list" id="lRecent"></ol>
           </div>
         </aside>
       </div>

@@ -251,44 +251,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tooltip .tt-status { margin-top: 6px; font-weight: 600; color: var(--ok); }
 .tooltip .tt-status.alert { color: var(--critical); }
 
-.cam-strip {
-  flex: none;
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 10px;
-  padding: 12px 16px 14px;
-  border-top: 1px solid var(--border);
-}
-.cam-chip {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  cursor: pointer; text-align: left;
-  transition: border-color 0.2s, background 0.2s;
-}
-.cam-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
-.cam-chip > div { min-width: 0; }
-.cam-chip { padding: 6px 10px 6px 6px; }
-.cam-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
-.cam-chip .chip-id { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; }
-.chip-thumb {
-  position: relative; flex: none;
-  width: 64px; aspect-ratio: 16 / 9; max-width: 100%;
-  border-radius: 6px; overflow: hidden;
-  background: var(--surface-3);
-}
-.chip-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-.cam-chip:hover .chip-thumb img { transform: scale(1.08); }
-.chip-live {
-  position: absolute; left: 3px; bottom: 3px;
-  font-size: 8px; font-weight: 700; letter-spacing: 0.08em; line-height: 1;
-  padding: 2px 4px; border-radius: 3px;
-  background: rgba(224, 40, 61, 0.9); color: #fff;
-}
-.cam-chip.alert .chip-thumb { outline: 2px solid var(--critical); }
-.cam-chip .chip-loc { font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cam-chip.alert { border-color: var(--critical); background: color-mix(in srgb, var(--critical) 10%, var(--surface)); animation: chip-flash 0.9s infinite; }
-.cam-chip.alert .chip-dot { background: var(--critical); }
-
 /* ---------- Event list ---------- */
 .event-list {
   flex: 1; min-height: 0;
@@ -540,38 +502,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn-primary { background: var(--accent); color: var(--accent-ink); }
 .btn-danger { background: color-mix(in srgb, var(--critical) 10%, transparent); color: var(--critical); border-color: color-mix(in srgb, var(--critical) 45%, transparent); }
 
-/* ---------- Live view ---------- */
-.live-box { border-top-color: var(--accent); }
-.live-box .live-chip { flex: none; }
-.live-player img {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-  animation: live-drift 14s ease-in-out infinite alternate;
-}
-.analytics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.analytic {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 500;
-  padding: 4px 9px; border-radius: 999px;
-  background: var(--surface); border: 1px solid var(--border);
-}
-.analytic .pulse-dot { width: 6px; height: 6px; }
-.recent-title { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--text-faint); margin-bottom: 8px; }
-.recent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.recent-empty { font-size: 13px; color: var(--text-faint); }
-.recent-item {
-  width: 100%;
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px;
-  padding: 7px 10px 7px 7px; border-radius: 9px;
-  border: 1px solid var(--border); border-left: 3px solid var(--sev);
-  background: var(--surface-2);
-  font-size: 13px; text-align: left; cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.recent-item:hover { background: color-mix(in srgb, var(--sev) 8%, var(--surface)); }
-.recent-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.recent-state { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: var(--sev-ink); }
-.recent-item time { font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
-
 /* ---------- Toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 60;
@@ -595,8 +525,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @keyframes card-in { from { opacity: 0; transform: translateX(40px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes card-glow { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sev) 22%, transparent); } }
 @keyframes label-flash { 50% { filter: brightness(1.2); } }
-@keyframes chip-flash { 50% { background: var(--surface-2); } }
-@keyframes live-drift { from { transform: scale(1); } to { transform: scale(1.04) translate(-0.5%, 0.4%); } }
 @keyframes bbox-drift { from { transform: translate(0, 0); } to { transform: translate(6px, -4px) scale(1.02); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -613,7 +541,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .layout { grid-template-columns: minmax(0, 1fr); }
   .panel-3d { height: 70vh; }
   .panel-events { height: 70vh; }
-  .cam-strip { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); }
   .modal-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 600px) {

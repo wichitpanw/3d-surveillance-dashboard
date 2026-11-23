@@ -10,7 +10,9 @@
     fight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 8v6l-2 6M6 14l2 6M18 8v6l2 6M18 14l-2 6M6 10l5 1M18 10l-5 1"/><path d="m11 9 2 4M13 9l-2 4"/></svg>',
     intrusion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/><path d="M12 8v4M12 16h.01"/></svg>',
     fire: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 2-8 1.5 1 2.5 2.5 3 4 .5-3 1-5 1-8z"/><path d="M12 22a3 3 0 0 1-3-3c0-2 3-4 3-4s3 2 3 4a3 3 0 0 1-3 3z"/></svg>',
-    smoking: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16h14v4H2zM20 16v4M23 16v4"/><path d="M17 12c0-2-2-2-2-4s2-2 2-4M21 12c0-2-2-2-2-4s2-2 2-4"/></svg>'
+    smoking: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16h14v4H2zM20 16v4M23 16v4"/><path d="M17 12c0-2-2-2-2-4s2-2 2-4M21 12c0-2-2-2-2-4s2-2 2-4"/></svg>',
+    collision: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16h12v-3l-2-4H5l-3 4z"/><circle cx="5" cy="16.5" r="1.5"/><circle cx="11" cy="16.5" r="1.5"/><path d="m17 5-2 4 4 1-2 4M21 7l-1.5 2M21 15l-1.5-1.5"/></svg>',
+    parking: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 16V8h2.8a2.2 2.2 0 0 1 0 4.4H10"/><path d="m5.8 5.8 12.4 12.4"/></svg>'
   };
   const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 
@@ -56,27 +58,6 @@
         o.stop(t0 + 0.15);
       });
     } catch (e) { /* audio is optional */ }
-  }
-
-  // ---------- Camera strip under the 3D view ----------
-  function buildCamStrip() {
-    const strip = $('#camStrip');
-    cfg.cameras.forEach((c) => {
-      const b = document.createElement('button');
-      b.className = 'cam-chip';
-      b.dataset.cam = c.id;
-      b.title = `Open live view · ${c.name}`;
-      b.innerHTML = `
-        <span class="chip-thumb"><img src="${c.snapshot}" alt="" loading="lazy" /><span class="chip-live">LIVE</span></span>
-        <div><div class="chip-id"><span class="chip-dot"></span>${c.id}</div><div class="chip-loc">${c.location}</div></div>`;
-      b.addEventListener('click', () => openLive(c.id));
-      strip.appendChild(b);
-    });
-    setInterval(() => {
-      strip.querySelectorAll('.cam-chip').forEach((b) => {
-        b.classList.toggle('alert', !!window.Scene3D?.isAlerting(b.dataset.cam));
-      });
-    }, 300);
   }
 
   // ---------- Cards ----------
@@ -355,72 +336,6 @@
   $('#bAck').addEventListener('click', () => setStatus('ack', 'Acknowledged by operator'));
   $('#bDispatch').addEventListener('click', () => setStatus('dispatched', 'Security team dispatched'));
 
-  // ---------- Live view (camera chips) ----------
-  const liveModal = $('#liveModal');
-  let liveCam = null;
-  let liveTimer = null;
-
-  function renderLiveState() {
-    const cam = camById[liveCam];
-    const alerting = window.Scene3D?.isAlerting(cam.id);
-    const latest = state.instances.find((i) => i.def.camId === cam.id);
-    $('#lStatus').innerHTML = alerting && latest
-      ? `<span class="status-pill new">ALERT · ${latest.def.type.toUpperCase()}</span>`
-      : '<span class="status-pill ack">ONLINE · RECORDING</span>';
-    $('#lHudTime').textContent = `${new Date().toLocaleDateString('en-GB')} ${hms(new Date())}`;
-
-    const recent = state.instances.filter((i) => i.def.camId === cam.id).slice(0, 4);
-    const list = $('#lRecent');
-    list.innerHTML = recent.length ? '' : '<li class="recent-empty">No events from this camera yet.</li>';
-    recent.forEach((inst) => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <button class="recent-item sev-${inst.def.severity}">
-          <span class="type-icon">${ICONS[inst.def.key] || ''}</span>
-          <span class="recent-name">${inst.def.type}</span>
-          <span class="recent-state">${inst.status === 'new' ? 'NEW' : inst.status === 'ack' ? 'ACK' : 'DISPATCHED'}</span>
-          <time>${hms(inst.time)}</time>
-        </button>`;
-      li.querySelector('button').addEventListener('click', () => { closeLive(false); openModal(inst); });
-      list.appendChild(li);
-    });
-  }
-
-  function openLive(camId) {
-    const cam = camById[camId];
-    if (!cam) return;
-    liveCam = camId;
-    $('#lTitle').textContent = `${cam.id} · ${cam.name}`;
-    $('#lSub').textContent = `${cam.location} · Floor ${cam.floor}`;
-    $('#lImg').src = cam.snapshot;
-    $('#lImg').alt = `Live view from ${cam.id}, ${cam.location}`;
-    $('#lCamId').textContent = cam.id;
-    $('#lHudLoc').textContent = `${cam.location} · ${cam.floor}`;
-    $('#lCam').textContent = `${cam.id} · ${cam.name}`;
-    $('#lLoc').textContent = `${cam.location} (${cam.floor})`;
-    $('#lAnalytics').innerHTML = (cam.analytics || []).map((a) => `<span class="analytic"><span class="pulse-dot"></span>${a}</span>`).join('');
-    renderLiveState();
-    clearInterval(liveTimer);
-    liveTimer = setInterval(renderLiveState, 1000);
-
-    liveModal.classList.add('open');
-    liveModal.setAttribute('aria-hidden', 'false');
-    window.Scene3D?.focus(camId, { autoReturn: false });
-  }
-
-  // returnHome = false when the event modal opens straight after, so the 3D view stays on that camera
-  function closeLive(returnHome = true) {
-    if (!liveCam) return;
-    liveCam = null;
-    clearInterval(liveTimer);
-    liveModal.classList.remove('open');
-    liveModal.setAttribute('aria-hidden', 'true');
-    if (returnHome) window.Scene3D?.returnHome();
-  }
-
-  $('#lClose').addEventListener('click', () => closeLive());
-  liveModal.addEventListener('click', (e) => { if (e.target === liveModal) closeLive(); });
-
   // ---------- Booth controls ----------
   function toggleMute() {
     state.muted = !state.muted;
@@ -463,7 +378,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    if (k === 'escape') { closeModal(); closeLive(); }
+    if (k === 'escape') closeModal();
     else if (k === 'f') toggleFullscreen();
     else if (k === 'm') toggleMute();
     else if (k === 't') toggleTheme();
@@ -475,8 +390,6 @@
   });
 
   // ---------- Boot ----------
-  buildCamStrip();
-
   if (window.Scene3D.init($('#scene'))) window.Scene3D.onCameraClick(onCameraClick);
   EventEngine.onEvent(onEvent);
   EventEngine.start();
