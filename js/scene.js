@@ -29,14 +29,14 @@
   // One palette per UI theme; every themed material is registered and recoloured by setTheme().
   const PALETTES = {
     light: {
-      fog: 0xe3e9f0, ground: 0xc9d3c0, lawn: 0x9cbf86, water: 0x86b5d8, plaza: 0xe6e3dc, road: 0x8d939b,
-      roadLine: 0xf4f4f0, roof: 0xefebe4, roofHall: 0xf7f5f1, rib: 0xd5cec3, mech: 0xb6bcc3, solar: 0x2d4a78,
-      glass: 0xffffff, tint: 0x40566b, column: 0xf3f3f1, soffit: 0xe9e9e6, fascia: 0xfafaf8,
-      slab: 0xe7edf5, room: 0xd6e2f2, server: 0xf7cdd3, serverEdge: 0xe0283d, kitchen: 0xf7e6bd, kitchenEdge: 0xd99a00,
-      edge: 0x2f6fd6, leaf: 0x5c9a6a, trunk: 0x7d6b58, gold: 0xd9a52f, pole: 0xd2d6dc, tower: 0xc6cfdc,
-      gridMajor: 0xb8c4b0, gridMinor: 0xc2ccba,
+      fog: 0xdce6f2, ground: 0xb7c2b0, lawn: 0x5c8a4b, water: 0x35749c, plaza: 0xd4cdc2, road: 0x464c54,
+      roadLine: 0xf0efe8, roof: 0xc2beb6, roofHall: 0xd4d7db, rib: 0x9fa3a8, mech: 0x626870, solar: 0x162d59,
+      glass: 0x20425a, tint: 0x2a3644, column: 0xe6dfd3, soffit: 0x6d472b, fascia: 0xe8e0d2,
+      slab: 0xbac4d1, room: 0xc8d2de, server: 0xf7cdd3, serverEdge: 0xe0283d, kitchen: 0xf7e6bd, kitchenEdge: 0xd99a00,
+      edge: 0x2f6fd6, leaf: 0x35693c, trunk: 0x5c4a38, gold: 0xd4a22a, pole: 0xc4c8ce, tower: 0xbac5d4,
+      gridMajor: 0xa2b09c, gridMinor: 0xafc0aa,
       marker: 0x1663e0, critical: 0xe0283d, high: 0xea7410, medium: 0xe3a500,
-      hemiSky: 0xffffff, hemiGround: 0xb6c3d6, hemi: 1.25, sun: 1.6
+      hemiSky: 0xddeeff, hemiGround: 0x8a8275, hemi: 0.72, sun: 1.35
     },
     dark: {
       fog: 0x111a2a, ground: 0x18222f, lawn: 0x1c3328, water: 0x122d47, plaza: 0x2a3446, road: 0x121924,
@@ -46,7 +46,7 @@
       edge: 0x4fc3ff, leaf: 0x24503d, trunk: 0x3b3b3b, gold: 0xc39328, pole: 0x7d8899, tower: 0x1f2c42,
       gridMajor: 0x24324a, gridMinor: 0x1c283b,
       marker: 0x3fd6ff, critical: 0xff4d5e, high: 0xff9a3d, medium: 0xffc93d,
-      hemiSky: 0x9cc8ff, hemiGround: 0x0a1220, hemi: 0.8, sun: 0.9
+      hemiSky: 0x9cc8ff, hemiGround: 0x0a1220, hemi: 0.48, sun: 0.75
     }
   };
 
@@ -101,6 +101,8 @@
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.96;
     renderer.autoClear = false;   // venue and camera markers are drawn in two passes (see animate)
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -127,10 +129,13 @@
     raycaster.obj = new THREE.Raycaster();
 
     addLights();
+    if (window.LIB.RoomEnvironment) {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new window.LIB.RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+    }
     buildSite();
-    buildBuilding();
-    buildEntrances();
-    buildInterior();
+    loadBlenderVenue();
     cfg.cameras.forEach(addCamera);
     setTheme(currentTheme());
     setView(view);
@@ -781,10 +786,84 @@
     outlined(box(18, 4.5, 20, mat('kitchen', { transparent: true, opacity: 0.8 }), -92, 2.25, 92, xrayGroup), 'kitchenEdge');
 
     // floor labels on the east (Ratchadaphisek) face, which the default view looks at
+    addInteriorLabels();
+  }
+
+  function addInteriorLabels() {
+    const hallW = (HALL.x1 - HALL.x0) / 4;
+    const z = (HALL.z0 + HALL.z1) / 2;
+    for (let i = 0; i < 4; i++) {
+      const x = HALL.x0 + hallW * (i + 0.5);
+      label(`HALL ${i + 1}`, x, 1.5, z, 'floor-label', xrayGroup);
+    }
     label('G · LOBBY / EXHIBITION HALLS', 116, 3, 70, 'floor-label', xrayGroup);
     label('L1 · PLENARY / BALLROOM', 116, LEVELS[1] + 3, 70, 'floor-label', xrayGroup);
     label('L2 · MEETING ROOMS', 116, LEVELS[2] + 3, 70, 'floor-label', xrayGroup);
     label('RESTRICTED', -118, LEVELS[2] + 14, -28, 'floor-label restricted', xrayGroup);
+  }
+
+  function buildProceduralVenue() {
+    buildBuilding();
+    buildEntrances();
+    buildInterior();
+    setView(view);
+  }
+
+  function loadBlenderVenue() {
+    if (!window.LIB.GLTFLoader) {
+      buildProceduralVenue();
+      return;
+    }
+    new window.LIB.GLTFLoader().load(
+      'models/venue.glb',
+      (gltf) => {
+        for (const node of [...gltf.scene.children]) {
+          const isGlass = node.name.startsWith('ExteriorGlass_');
+          const isExt = node.name.startsWith('Exterior_');
+          const isInt = node.name.startsWith('Interior_');
+          node.traverse((m) => {
+            if (!m.isMesh) return;
+            const mats = Array.isArray(m.material) ? m.material : [m.material];
+            for (const mt of mats) {
+              if (!mt) continue;
+              mt.envMapIntensity = 0.55;
+              if (isGlass) {
+                mt.transparent = true;
+                mt.depthWrite = false;
+                glassMats.push([mt, 0.74, 0.10]);
+              } else if (node.name === 'Interior_Slabs' && mt.transparent) {
+                mt.depthWrite = false;
+              }
+            }
+            m.castShadow = !isGlass;
+            m.receiveShadow = true;
+          });
+          if (isExt) exteriorGroup.add(node);
+          else if (isInt) xrayGroup.add(node);
+          else scene.add(node);
+        }
+        facadeRing = ringOf(outlineShape(OUTLINE), 220);
+        cornerSign(NE, 24.5, 5.6, 4.9);
+        cornerSign(SE, 20.5, 5.6, 4.9);
+        const pylonHead = add(
+          new THREE.Mesh(
+            new THREE.PlaneGeometry(6.4, 1.7),
+            new THREE.MeshBasicMaterial({ map: signTexture('QSNCC', '#8a7340'), transparent: true })
+          ),
+          scene,
+          { cast: false }
+        );
+        pylonHead.position.set(132.88, 14.4, -142);
+        pylonHead.rotation.y = Math.PI / 2;
+        addInteriorLabels();
+        setView(view);
+      },
+      undefined,
+      (err) => {
+        console.warn('Could not load models/venue.glb, using procedural fallback:', err);
+        buildProceduralVenue();
+      }
+    );
   }
 
   // ---------- Camera markers ----------
