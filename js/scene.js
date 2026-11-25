@@ -135,6 +135,7 @@
       pmrem.dispose();
     }
     buildSite();
+    window.SiteTraffic?.build(THREE, scene);
     loadBlenderVenue();
     cfg.cameras.forEach(addCamera);
     setTheme(currentTheme());
@@ -326,7 +327,7 @@
   // Roofline rises toward the lakeside NE entrance corner, as in the architectural render.
   const roofTop = (p) => ROOF_Y + 4 * smooth((p.x + 60) / 160) * smooth((-p.z - 25) / 75);
 
-  // ---------- Site: roads, lake, plazas, planting, skyline ----------
+  // ---------- Base horizon (ground fade, metric grid, distant skyline; all 3D site assets load from models/venue.glb) ----------
   function buildSite() {
     const ground = add(new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), mat('ground', { roughness: 1 })), scene, { cast: false });
     ground.rotation.x = -Math.PI / 2;
@@ -344,77 +345,9 @@
       scene.add(new THREE.LineSegments(geo, mat(key, { transparent: true, opacity: op }, THREE.LineBasicMaterial)));
     });
 
-    const lawn = mat('lawn', { roughness: 1 });
-    const plaza = mat('plaza', { roughness: 0.9 });
-    const road = mat('road', { roughness: 0.95 });
-    const water = mat('water', { roughness: 0.15, metalness: 0.2 });
-
-    // Benjakitti park lawns around the lake, and the lake with its round island pavilion
-    flat(outlineShape([[-160, -340, 30], [175, -340, 30], [175, -132, 0], [-160, -132, 0]]), lawn, 0.1);
-    flat(outlineShape([[-105, -318, 34], [125, -318, 34], [125, -152, 30], [-105, -152, 30]]), water, 0.3);
-    const island = add(new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 1.2, 48), plaza), scene, { cast: false });
-    island.position.set(-10, 0.6, -232);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(17, 17, 4, 48), mat('fascia')), scene).position.set(-10, 3, -232);
-    box(4, 0.8, 50, plaza, -10, 0.4, -180);   // causeway to the island
-
-    // paved forecourt hugging the building
-    flat(outlineShape(SITE), plaza, 0.2);
-
-    // Ratchadaphisek Rd (east), service roads north / west / south
-    box(40, 0.1, 1200, road, 157, 0.05, 0);
-    box(2.2, 0.35, 1200, lawn, 157, 0.18, 0);
-    const lineMat = mat('roadLine', {}, THREE.MeshBasicMaterial);
-    for (let z = -590; z < 600; z += 12) for (const x of [143, 150, 164, 171]) box(0.25, 0.1, 5, lineMat, x, 0.16, z);
-    box(330, 0.1, 13, road, -8, 0.06, -125);
-    box(14, 0.1, 300, road, -152, 0.06, 15);
-    box(320, 0.1, 13, road, -10, 0.06, 158);
-
-    // east forecourt along the road: flag poles, golden flame sculpture, fountains
-    const pole = mat('pole', { metalness: 0.5, roughness: 0.4 });
-    const flagColors = [0x2f5aa8, 0xd23a3a, 0xf2f2f2, 0x2f8f5b, 0xf0b429];
-    for (let i = 0; i < 18; i++) {
-      const z = -88 + i * 3.6;
-      const p = add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 13, 8), pole), scene);
-      p.position.set(126, 6.5, z);
-      const f = add(new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.7), new THREE.MeshStandardMaterial({ color: flagColors[i % 5], side: THREE.DoubleSide })), scene, { cast: false });
-      f.position.set(126, 11.8, z + 1.35);
-      f.rotation.y = Math.PI / 2;
-    }
-    const flame = new THREE.LatheGeometry([
-      [0, 0], [1.6, 0.4], [2.3, 2.2], [2.2, 4.5], [1.5, 6.6], [0.7, 8.4], [0, 9.6]
-    ].map(([r, y]) => new THREE.Vector2(r, y)), 28);
-    const gold = mat('gold', { metalness: 0.85, roughness: 0.28 });
-    box(11, 1, 7, plaza, 124, 0.5, 18);
-    box(2.4, 1.6, 2.4, mat('tint'), 124, 1.8, 18);
-    add(new THREE.Mesh(flame, gold), scene).position.set(124, 2.6, 18);
-    for (const [z0, z1] of [[-30, -6], [38, 62]]) flat(rectShape(118, z0, 123, z1), water, 0.35);
-
-    // trees: along the roads, the forecourt edges and around the lake (one instanced mesh each)
-    const spots = [];
+    // distant Bangkok skyline, faded by fog
     let seed = 11;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    for (let z = -330; z < 330; z += 13) { spots.push([137 + rnd() * 2, z + rnd() * 4]); spots.push([179 + rnd() * 2, z + rnd() * 4]); }
-    for (let x = -150; x < 120; x += 14) { spots.push([x + rnd() * 4, -138 - rnd() * 6]); spots.push([x + rnd() * 4, 170 + rnd() * 4]); }
-    for (let z = -110; z < 150; z += 14) spots.push([-166 - rnd() * 4, z]);
-    for (let i = 0; i < 60; i++) {
-      const a = rnd() * Math.PI * 2, r = 1 + rnd() * 0.12;
-      spots.push([10 + Math.cos(a) * 140 * r, -235 + Math.sin(a) * 100 * r]);
-    }
-    // keep sight lines open where the two vehicle gates meet Ratchadaphisek Rd
-    const inGate = ([x, z]) => x > 95 && x < 190 && GATES.some(([z0, z1]) => z > z0 && z < z1);
-    for (let i = spots.length - 1; i >= 0; i--) if (inGate(spots[i])) spots.splice(i, 1);
-    const crowns = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), mat('leaf', { roughness: 0.9 }), spots.length);
-    const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.5, 1, 6), mat('trunk'), spots.length);
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), v = new THREE.Vector3();
-    spots.forEach(([x, z], i) => {
-      const size = 3.5 + rnd() * 3;
-      crowns.setMatrixAt(i, m4.compose(v.set(x, 4 + size * 0.6, z), q, s.set(size, size * 0.8, size)));
-      trunks.setMatrixAt(i, m4.compose(v.set(x, 2.2, z), q, s.set(1, 4.4, 1)));
-    });
-    add(crowns, scene);
-    add(trunks, scene);
-
-    // distant Bangkok skyline, faded by fog
     const towerMat = mat('tower', { roughness: 0.8 });
     for (let i = 0; i < 40; i++) {
       const a = -Math.PI * 0.95 + rnd() * Math.PI * 1.3, r = 480 + rnd() * 480;
@@ -815,7 +748,7 @@
       return;
     }
     new window.LIB.GLTFLoader().load(
-      'models/venue.glb',
+      'models/venue.glb?v=2',
       (gltf) => {
         for (const node of [...gltf.scene.children]) {
           const isGlass = node.name.startsWith('ExteriorGlass_');
@@ -835,7 +768,7 @@
                 mt.depthWrite = false;
               }
             }
-            m.castShadow = !isGlass;
+            m.castShadow = !isGlass && node.name !== 'Site_LakeWater';
             m.receiveShadow = true;
           });
           if (isExt) exteriorGroup.add(node);
@@ -1203,9 +1136,13 @@
   }
 
   // ---------- Render loop ----------
+  let lastFrame = performance.now();
   function animate() {
     requestAnimationFrame(animate);
     const now = performance.now();
+    const dt = Math.min((now - lastFrame) / 1000, 0.05);
+    lastFrame = now;
+    window.SiteTraffic?.update(now, dt);
 
     if (tween) {
       const k = Math.min(1, (now - tween.start) / tween.dur);
