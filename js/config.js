@@ -42,7 +42,12 @@ window.APP_CONFIG = {
     },
     {
       key: 'weapon', type: 'Weapon Detection', target: 'Firearm', camId: 'CAM-02', severity: 'critical',
-      video: 'videos/event2.mp4', confidence: [91, 98], box: [42, 30, 17, 60], boxAt: 3.7,
+      video: 'videos/event2.mp4?v=2', confidence: [91, 98], box: [33.5, 37, 13.5, 53], boxAt: 3.1,
+      track: [[3.1, 33.5, 37, 13.5, 53], [3.5, 33, 37.5, 13.5, 53.5], [4.0, 32.5, 39.5, 13, 53.5],
+              [4.5, 30.5, 40.5, 14, 56], [5.0, 28, 41.5, 14.5, 58], [5.5, 24, 43.5, 15.5, 56.5],
+              [6.0, 23, 45, 14.5, 55], [6.5, 21, 47, 14, 53], [7.0, 15.5, 48.5, 17.5, 51.5],
+              [7.5, 12.5, 51, 17.5, 49], [8.0, 10, 52.5, 16, 47.5], [8.5, 7, 54.5, 15, 45.5],
+              [9.0, 0.5, 56.5, 20, 43.5], [9.5, 0.5, 59, 17, 41], [9.9, 0, 68, 15, 32]],
       desc: 'A person in the entrance lobby drew a handgun from their waistband and visitors are fleeing the area. Security lockdown and police notification recommended.'
     },
     {
